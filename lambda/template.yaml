@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  # Lambda本体
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          # -- coding: utf-8 --
+
+          import logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+            logger.info("Event: " + str(event))
+      Description: MyLambdaFunction
+      FunctionName: MyLambdaFunction
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt MyLambdaExecutionRole.Arn
+      Runtime: python3.6
+      Timeout: 3
+
+  # Lambda実行用のRole
+  MyLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+
+  # ログ分析用のメトリクスフィルター
+  MyMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: /aws/lambda/MyLambdaFunction
+      FilterPattern: ""
+      MetricTransformations:
+        -
+          MetricNamespace: MyLambdaFunction
+          MetricName: MyMetricFilter
+          MetricValue: "1"
+
+  MyMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: MyMetricAlarm
+      AlarmDescription: My Metric Alarm
+      AlarmActions:
+        - !Ref AlarmNotificationTopic
+      MetricName: MyMetricFilter
+      Namespace: MyLambdaFunction
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 300
+      Statistic: Sum
+      Threshold: 1
+
+  # アラート通知用のSNS
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        -
+          Endpoint: choimake330@gmail.com
+          Protocol: email
