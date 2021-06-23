@@ -1,5 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
+Parameters:
+  Email:
+    Type: String
+    Default: choimake330@gmail.com
+    Description: >
+      Email address to notify when an function activity has triggerd an alarm.
+
 Resources:
   # Lambda本体
   MyLambdaFunction:
@@ -66,6 +73,9 @@ Resources:
       AlarmDescription: My Metric Alarm
       AlarmActions:
         - !Ref AlarmNotificationTopic
+      # Note:
+      # AlarmのMetricNameとNamespaceには関連付けたいMetricFilterのNameとNamespaceを設定すること
+      # でないとMetricFilterにAlarmが設定されない
       MetricName: MyMetricFilter
       Namespace: MyLambdaFunction
       ComparisonOperator: GreaterThanOrEqualToThreshold
@@ -80,5 +90,5 @@ Resources:
     Properties:
       Subscription:
         -
-          Endpoint: choimake330@gmail.com
+          Endpoint: !Ref Email
           Protocol: email
